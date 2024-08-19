@@ -136,6 +136,30 @@ def evaluate_model(model, test_loader, device = torch.device("cuda" if torch.cud
     print(f"Test Accuracy: {accuracy * 100:.2f}%")
     return accuracy, correctly_classified, incorrectly_classified
 
+# Ensemble evaluation NOT TESTED
+def ensemble_evaluation(models, test_loader):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    for model in models:
+        model.to(device)
+        model.eval()
+
+    ensemble_predictions = []
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs = inputs.to(device)
+            predictions = []
+            for model in models:
+                outputs = model(inputs)
+                predicted = (outputs > 0.5).float()
+                predictions.append(predicted)
+            ensemble_predictions.append(predictions)
+
+    ensemble_predictions = torch.stack(ensemble_predictions)
+    ensemble_statistics = torch.mean(ensemble_predictions, dim=0)
+
+    return ensemble_statistics
+
+
 # Save the model
 def save_model(model, model_path):
     torch.save(model.state_dict(), model_path)
