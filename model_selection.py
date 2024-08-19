@@ -7,7 +7,7 @@ import time
 
 # Define the model
 class SkinCancerModel(nn.Module):
-    def __init__(self, model_option, loss_option, optimizer_option, model_save_path = 'skin_cancer_model'):
+    def __init__(self, model_option, loss_option, optimizer_option, model_save_path = 'skin_cancer_model', specified_weights=None):
         super(SkinCancerModel, self).__init__()
         self.model_option = model_option
         self.loss_option = loss_option
@@ -16,6 +16,9 @@ class SkinCancerModel(nn.Module):
         self.model = self._get_model()
         # Change the output layer to have 1 output
         self.model.fc = nn.Linear(self.model.fc.in_features, 1)
+
+        # if specified_weights:
+        #     self.model.load_state_dict(torch.load(specified_weights))
 
         self.criterion = self._get_loss()
         self.optimizer = self._get_optimizer()
@@ -107,7 +110,9 @@ def train_model(model, train_loader, test_loader,  epochs=10, save_period=10, mo
     return train_losses, test_accuracies, correctly_classified, incorrectly_classified
 
 # Evaluate the model
-def evaluate_model(model, test_loader, device = torch.device("cuda" if torch.cuda.is_available() else "cpu")):
+def evaluate_model(model, test_loader, device = torch.device("cuda" if torch.cuda.is_available() else "cpu"), eval_only=False):
+    if eval_only:
+        model = model.to(device)
     model.eval()
     correct = 0
     total = 0
@@ -136,4 +141,6 @@ def save_model(model, model_path):
     torch.save(model.state_dict(), model_path)
 
 
-
+def load_model(model, model_path):
+    model.load_state_dict(torch.load(model_path))
+    return model

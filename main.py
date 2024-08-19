@@ -4,10 +4,10 @@ import argparse
 
 
 # Import visualization functions
-from visualization import plot_training_curves, save_classified_examples
+from visualization import plot_training_curves, save_classified_examples, save_accuracy
 
 # Import model and training functions
-from model_selection import SkinCancerModel, train_model, evaluate_model, save_model
+from model_selection import SkinCancerModel, train_model, evaluate_model, load_model
 
 # Import dataset and dataloader functions
 from dataloader import CustomSkinCancerDataset, pick_dataloader
@@ -18,7 +18,7 @@ import datetime
 parser = argparse.ArgumentParser(description='Skin Cancer Classification')
 
 # Add arguments
-parser.add_argument('--input_data_dir', type=str, default='..\\all_data', help='Model option ("..\\all_data", "..\\debug_data")')
+parser.add_argument('--input_data_dir', type=str, default='..\\debug_data', help='Model option ("..\\all_data", "..\\debug_data")')
 parser.add_argument('--model', type=str, default='resnet18', help='Model option ("resnet18", "resnet34", "resnet50")')
 parser.add_argument('--loss', type=str, default='BCELoss', help='Loss option ("BCELoss", "CrossEntropyLoss", "MSELoss", "NLLLoss", "SmoothL1Loss")')
 parser.add_argument('--optimizer', type=str, default='Adam', help='Optimizer option ("Adam", "SGD", "RMSprop", "Adagrad", "AdamW")')
@@ -27,10 +27,12 @@ parser.add_argument('--training_curve_path', type=str, default='/training_curve.
 parser.add_argument('--correctly_classified_path', type=str, default='/correctly_classified', help='Path to save the correctly classified examples')
 parser.add_argument('--incorrectly_classified_path', type=str, default='/incorrectly_classified', help='Path to save the incorrectly classified examples')
 parser.add_argument('--custom_name', type=str, default='TRAINING_1', help='Custom name for the results directory')
-parser.add_argument('--batch_size', type=int, default=256, help='Batch size for training and testing')
-parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train the model')
+parser.add_argument('--batch_size', type=int, default=100, help='Batch size for training and testing')
+parser.add_argument('--epochs', type=int, default=1, help='Number of epochs to train the model')
 parser.add_argument('--save_period', type=int, default=10, help='Period to save the model')
 parser.add_argument('--data_split', type=int, default=80, help='Percentage of data to use for training, give integer value between 0 and 100')
+parser.add_argument('--eval_only', action='store_true', default=False, help='Evaluate the model only')
+parser.add_argument('--specified_weights', type=str, default=None, help='Path to the specified weights')
 
 # Parse the arguments
 args = parser.parse_args()
@@ -49,6 +51,7 @@ batch_size = args.batch_size
 epochs = args.epochs
 save_period = args.save_period
 data_split = args.data_split
+specified_weights = args.specified_weights
 
 if __name__ == '__main__':
     # Create a directory for the results
@@ -65,19 +68,27 @@ if __name__ == '__main__':
             print("Stopping the run.")
             exit(1)
 
-
-
     # Load the dataset
     train_loader, test_loader = pick_dataloader(input_data_dir, batch_size=batch_size, data_split=data_split)
 
     # Load the model
     model = SkinCancerModel(model_option, loss_option, optimizer_option)
-
+    load_model(model, specified_weights)
+    
     # Train the model, Test the model, and Save the model
-    train_losses, test_accuracies, correctly_classified, incorrectly_classified = train_model(model, train_loader, test_loader, epochs=epochs, save_period=save_period, model_save_path=results_dir+model_save_path)
-    # accuracy, correctly_classified, incorrectly_classified = evaluate_model(model, test_loader)
-
-    # Save the training curves and classified examples
-    plot_training_curves(train_losses, test_accuracies, results_dir+training_curve_path)
-    save_classified_examples(correctly_classified[:100], results_dir+correctly_classified_path)
-    save_classified_examples(incorrectly_classified[:100], results_dir+incorrectly_classified_path)
+    if args.eval_only:
+        # Evaluate the model
+        accuracy, correctly_classified, incorrectly_classified = evaluate_model(model, test_loader, eval_only=args.eval_only)
+        # Save the classified examples
+        save_classified_examples(correctly_classified[:100], results_dir+correctly_classified_path)
+        save_classified_examples(incorrectly_classified[:100], results_dir+incorrectly_classified_path)
+        # Save the accuracy to the results directory
+        save_accuracy(accuracy, results_dir, input_data_dir)
+    else:
+        # Train the model
+        train_losses, test_accuracies, correctly_classified, incorrectly_classified = train_model(model, train_loader, test_loader, epochs=epochs, save_period=save_period, model_save_path=results_dir+model_save_path)
+        # Save the training curves and classified examples
+        plot_training_curves(train_losses, test_accuracies, results_dir+training_curve_path)
+        save_classified_examples(correctly_classified[:100], results_dir+correctly_classified_path)
+        save_classified_examples(incorrectly_classified[:100], results_dir+incorrectly_classified_path)
+        save_accuracy(test_accuracies, results_dir, input_data_dir)
