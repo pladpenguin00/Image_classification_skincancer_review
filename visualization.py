@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 def plot_training_curves(train_losses, test_accuracies, save_path):
     epochs = range(1, len(train_losses) + 1)
@@ -48,3 +49,10 @@ def save_classified_examples(classified, output_path):
     plt.savefig(output_path)
     plt.close()
     print("Saved classified examples to", output_path)
+
+def save_accuracy(accuracy, results_dir, input_data_dir):
+    accuracy_file = os.path.join(results_dir, 'accuracy.txt')
+    with open(accuracy_file, 'w') as f:
+        f.write(f'Test_Accuracy on data {input_data_dir}: {accuracy}')
+
+    print(f"Saved accuracy to {accuracy_file}")
