@@ -45,7 +45,7 @@ class CustomSkinCancerDataset(Dataset):
         
         return img, label
 
-def pick_dataloader(path_to_your_dataset, batch_size=16):
+def pick_dataloader(path_to_your_dataset, batch_size=16, data_split=80):
     data_dir = path_to_your_dataset
     
     # Define preprocessing and transformations
@@ -67,7 +67,7 @@ def pick_dataloader(path_to_your_dataset, batch_size=16):
     custom_dataset_test  = CustomSkinCancerDataset(root_dir=data_dir, transform=transform)
 
     # Split dataset into training and testing sets
-    train_size = int(0.8 * len(custom_dataset_train))
+    train_size = int((data_split/100) * len(custom_dataset_train))
     test_size = len(custom_dataset_train) - train_size
     train_dataset, _ = random_split(custom_dataset_train, [train_size, test_size])
     _, test_dataset = random_split(custom_dataset_test, [train_size, test_size])
